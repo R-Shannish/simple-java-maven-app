@@ -1,16 +1,17 @@
 pipeline {
-    agent {
-        label '!windows'
-    }
+    agent any
+
     options {
         skipStagesAfterUnstable()
     }
+
     stages {
         stage('Build') {
             steps {
-                sh 'mvn -B -DskipTests clean package'
+                sh 'mvn -B clean package'
             }
         }
+
         stage('Test') {
             steps {
                 sh 'mvn test'
@@ -21,9 +22,19 @@ pipeline {
                 }
             }
         }
-        stage('Deliver') { 
+
+        stage('Docker Build') {
             steps {
-                sh './jenkins/scripts/deliver.sh' 
+                sh 'docker build -t my-java-web-app:1.0 .'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh '''
+                    docker rm -f my-java-container || true
+                    docker run -d --name my-java-container -p 8081:8081 my-java-web-app:1.0
+                '''
             }
         }
     }
